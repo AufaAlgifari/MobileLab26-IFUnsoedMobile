@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,6 +18,7 @@ import com.example.pertemuan1.ui.screen.DaftarProdukScreen
 import com.example.pertemuan1.ui.screen.DetailProductScreen
 import com.example.pertemuan1.ui.screen.HubungiKamiScreen
 import com.example.pertemuan1.ui.theme.Pertemuan1Theme
+import com.example.pertemuan1.ui.viewmodel.ProductViewModel
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,27 +31,29 @@ class HomeActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    val productViewModel: ProductViewModel = viewModel()
 
                     NavHost(
                         navController = navController,
                         startDestination = "daftar_produk"
                     ) {
-                        // 1. Rute Halaman Utama (Daftar Produk)
                         composable(route = "daftar_produk") {
-                            DaftarProdukScreen(navController = navController)
+                            DaftarProdukScreen(
+                                navController = navController,
+                                viewModel = productViewModel
+                            )
                         }
 
-                        // 2. Rute Halaman Detail Produk (Menerima Parameter ID)
                         composable(
                             route = "detail/{productId}",
                             arguments = listOf(navArgument("productId") { type = NavType.IntType })
                         ) { backStackEntry ->
-                            // Menangkap productId dari URL route
                             val productId = backStackEntry.arguments?.getInt("productId") ?: 0
 
                             DetailProductScreen(
                                 productId = productId,
-                                navController = navController
+                                navController = navController,
+                                viewModel = productViewModel
                             )
                         }
 

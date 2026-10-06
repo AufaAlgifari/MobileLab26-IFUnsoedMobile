@@ -1,7 +1,6 @@
 package com.example.pertemuan1.ui.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,17 +23,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
+import coil.compose.AsyncImage
 import com.example.pertemuan1.R
-import com.example.pertemuan1.data.dummy.DummyData
 import com.example.pertemuan1.data.model.Category
 import com.example.pertemuan1.data.model.Product
+import com.example.pertemuan1.ui.viewmodel.ProductUiState
+import com.example.pertemuan1.ui.viewmodel.ProductViewModel
+import com.example.pertemuan1.util.JualanConstants
 
 @Composable
 fun ProductItemCard(product: Product, onClick: () -> Unit) {
@@ -46,10 +45,12 @@ fun ProductItemCard(product: Product, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(
-            modifier = Modifier.padding(8.dp)
-        ) {
-            val imageRes = if (product.img == "dummy_product") R.drawable.dummy_product else R.drawable.dummy_product
+        Column(modifier = Modifier.padding(8.dp)) {
+            val imageModel: Any = if (product.img == "dummy_product") {
+                R.drawable.dummy_product
+            } else {
+                "${JualanConstants.BASE_URL}img/${product.img}"
+            }
 
             Box(
                 modifier = Modifier
@@ -58,10 +59,10 @@ fun ProductItemCard(product: Product, onClick: () -> Unit) {
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.White)
             ) {
-                Image(
-                    painter = painterResource(id = imageRes),
+                AsyncImage(
+                    model = imageModel,
                     contentDescription = product.name,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().aspectRatio(1f),
                     contentScale = ContentScale.Fit
                 )
 
@@ -84,19 +85,9 @@ fun ProductItemCard(product: Product, onClick: () -> Unit) {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = product.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Text(product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Rp ${product.price.toInt()}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Text("Rp ${product.price.toInt()}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -105,209 +96,111 @@ fun ProductItemCard(product: Product, onClick: () -> Unit) {
 fun CategoryItem(category: Category, isSelected: Boolean, onClick: () -> Unit) {
     val containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
     val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-
-    Card(
-        modifier = Modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor,
-            contentColor = contentColor
-        )
-    ) {
-        Text(
-            text = category.name,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            fontWeight = FontWeight.Medium
-        )
+    Card(modifier = Modifier.clickable { onClick() }, colors = CardDefaults.cardColors(containerColor = containerColor, contentColor = contentColor)) {
+        Text(text = category.name, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontWeight = FontWeight.Medium)
     }
 }
 
-// 1. Modifikasi DaftarProdukScreen untuk Manajemen State dan LaunchedEffect
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DaftarProdukScreen(navController: NavController? = null) {
-    val context = LocalContext.current
-    var selectedCategoryId by rememberSaveable { mutableStateOf(DummyData.categories.firstOrNull()?.id) }
+fun DaftarProdukScreen(navController: NavController? = null, viewModel: ProductViewModel) {
+    var selectedCategoryId by rememberSaveable { mutableStateOf<Int?>(value = null) }
     var searchQuery by rememberSaveable { mutableStateOf(value = "") }
-    var isLoading by remember { mutableStateOf(value = false) }
-    var filteredProducts by remember { mutableStateOf(value = emptyList<Product>()) }
 
-    // Simulasi loading 1 detik dan filter data
-    LaunchedEffect(key1 = selectedCategoryId, key2 = searchQuery) {
-        isLoading = true
-        delay(timeMillis = 1000)
+    // Membaca State dari ViewModel
+    val uiState by viewModel.uiState.collectAsState()
 
-        val filteredByCategory = if (selectedCategoryId != null) {
-            DummyData.products.filter { it.category_id == selectedCategoryId }
-        } else DummyData.products
-
-        filteredProducts = if (searchQuery.isBlank()) {
-            filteredByCategory
-        } else {
-            filteredByCategory.filter { it.name.contains(other = searchQuery, ignoreCase = true) }
+    when (val state = uiState) {
+        is ProductUiState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
         }
-        isLoading = false
+        is ProductUiState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
+            }
+        }
+        is ProductUiState.Success -> {
+            if (selectedCategoryId == null && state.categories.isNotEmpty()) {
+                selectedCategoryId = state.categories.first().id
+            }
+
+            val filteredByCategory = if (selectedCategoryId != null) {
+                state.products.filter { it.category_id == selectedCategoryId }
+            } else {
+                state.products
+            }
+
+            val filteredProducts = if (searchQuery.isBlank()) {
+                filteredByCategory
+            } else {
+                filteredByCategory.filter { it.name.contains(other = searchQuery, ignoreCase = true) }
+            }
+
+            StatelessDaftarProduct(
+                categories = state.categories,
+                selectedCategoryId = selectedCategoryId,
+                onCategorySelected = { selectedCategoryId = it },
+                searchQuery = searchQuery,
+                onSearchQueryChange = { searchQuery = it },
+                isLoading = false,
+                products = filteredProducts,
+                onProductClick = { product -> navController?.navigate(route = "detail/${product.id}") },
+                onContactUsClick = { navController?.navigate(route = "hubungi_kami") }
+            )
+        }
     }
-
-    StatelessDaftarProduct(
-        categories = DummyData.categories,
-        selectedCategoryId = selectedCategoryId,
-        onCategorySelected = { selectedCategoryId = it },
-        searchQuery = searchQuery,
-        onSearchQueryChange = { searchQuery = it },
-        isLoading = isLoading,
-        products = filteredProducts,
-        onProductClick = { product ->
-            navController?.navigate(route = "detail/${product.id}")
-        },
-        onContactUsClick = {
-            navController?.navigate(route = "hubungi_kami")
-        }
-    )
 }
 
-// 2. Pembuatan StatelessDaftarProduct (State Hoisting)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatelessDaftarProduct(
-    categories: List<Category>,
-    selectedCategoryId: Int?,
-    onCategorySelected: (Int) -> Unit,
-    searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
-    isLoading: Boolean,
-    products: List<Product>,
-    onProductClick: (Product) -> Unit,
-    onContactUsClick: () -> Unit
+    categories: List<Category>, selectedCategoryId: Int?, onCategorySelected: (Int) -> Unit,
+    searchQuery: String, onSearchQueryChange: (String) -> Unit, isLoading: Boolean,
+    products: List<Product>, onProductClick: (Product) -> Unit, onContactUsClick: () -> Unit
 ) {
+    // (Kode StatelessDaftarProduct tetap sama persis seperti modul 4 yang sudah bersih dari DummyData)
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Daftar Produk UMKM") },
                 actions = {
-                    // Ikon Keranjang dari kode Anda sebelumnya
-                    IconButton(onClick = {}) {
-                        Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Cart")
-                    }
-
-                    // 3. Tambahan Menu Action Dropdown (Bagian F Modul 4)
-                    var expanded by remember { mutableStateOf(value = false) }
-                    IconButton(onClick = { expanded = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Menu",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
+                    IconButton(onClick = {}) { Icon(imageVector = Icons.Default.ShoppingCart, contentDescription = "Cart") }
+                    var expanded by remember { mutableStateOf(false) }
+                    IconButton(onClick = { expanded = true }) { Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onPrimary) }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(
                             text = { Text("Hubungi Kami") },
-                            onClick = {
-                                expanded = false
-                                onContactUsClick()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Default.Email,
-                                    contentDescription = "Email"
-                                )
-                            }
+                            onClick = { expanded = false; onContactUsClick() },
+                            leadingIcon = { Icon(imageVector = Icons.Default.Email, contentDescription = "Email") }
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary, titleContentColor = MaterialTheme.colorScheme.onPrimary, actionIconContentColor = MaterialTheme.colorScheme.onPrimary)
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                label = { Text("Cari produk...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                singleLine = true
-            )
-
-            Text(
-                text = "Kategori Produk",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(all = 16.dp)
-            )
-
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(categories) { category ->
-                    CategoryItem(
-                        category = category,
-                        isSelected = category.id == selectedCategoryId,
-                        onClick = { onCategorySelected(category.id) }
-                    )
-                }
+        Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            OutlinedTextField(value = searchQuery, onValueChange = onSearchQueryChange, label = { Text("Cari produk...") }, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), singleLine = true)
+            Text(text = "Kategori Produk", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(all = 16.dp))
+            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(categories) { category -> CategoryItem(category = category, isSelected = category.id == selectedCategoryId, onClick = { onCategorySelected(category.id) }) }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
+            Text(text = "Daftar Produk", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
-            Text(
-                text = "Daftar Produk",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            if (isLoading) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Mencari data...")
-                    }
-                }
+            if (products.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Produk tidak ditemukan.") }
             } else {
-                if (products.isEmpty()) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Produk tidak ditemukan.")
-                    }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(count = 2),
-                        contentPadding = PaddingValues(all = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(products) { product ->
-                            ProductItemCard(product = product) {
-                                onProductClick(product)
-                            }
-                        }
-                    }
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(count = 2), contentPadding = PaddingValues(all = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(products) { product -> ProductItemCard(product = product) { onProductClick(product) } }
                 }
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewProductLight() {
-    DaftarProdukScreen()
-}
-
-@Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun PreviewProductDark() {
-    DaftarProdukScreen()
 }
