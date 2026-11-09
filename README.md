@@ -1,17 +1,11 @@
-# belajar_flutter
+![Meme Flutter](hai.jpeg)
 
-A new Flutter project.
+# Belajar Pemrograman Flutter
 
-## Getting Started
+## Apa itu Flutter?
 
-This project is a starting point for a Flutter application.
+Flutter adalah kerangka kerja (_framework_) _open-source_ yang dikembangkan oleh Google. Flutter digunakan oleh _developer_ untuk membangun antarmuka pengguna (UI) aplikasi secara multi-platform (seperti iOS, Android, web, Windows, macOS, dan Linux) hanya dengan menggunakan satu basis kode (_single codebase_).
 
-A few resources to get you started if this is your first Flutter project:
+## Bahasa Pemrograman
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Flutter menggunakan bahasa pemrograman **Dart**, yang juga dikembangkan oleh Google. Dart sangat dioptimalkan untuk membangun UI yang cepat dan responsif, serta mendukung fitur _Hot Reload_ yang sangat mempercepat proses pembuatan aplikasi.
