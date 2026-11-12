@@ -1,6 +1,6 @@
-![Meme Flutter](hai.jpeg)
-
 # Tugas 4 Praktikum Pemrograman Mobile
+
+![Meme Flutter](hai.jpeg)
 
 Proyek ini merupakan implementasi dari Modul 4 Praktikum Pemrograman Mobile. Terdiri dari dua bagian utama: Backend (RESTful API menggunakan CodeIgniter 4) dan Frontend (Aplikasi Mobile menggunakan Flutter).
 
