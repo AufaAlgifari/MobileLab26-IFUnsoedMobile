@@ -6,10 +6,10 @@ class ProdukDetail extends StatefulWidget {
   Produk? produk;
   ProdukDetail({Key? key, this.produk}) : super(key: key);
   @override
-  ProdukDetailState createState() => ProdukDetailState();
+  _ProdukDetailState createState() => _ProdukDetailState();
 }
 
-class ProdukDetailState extends State<ProdukDetail> {
+class _ProdukDetailState extends State<ProdukDetail> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -18,15 +18,15 @@ class ProdukDetailState extends State<ProdukDetail> {
         child: Column(
           children: [
             Text(
-              "Kode: ${widget.produk!.kodeProduk}",
+              "Kode : ${widget.produk!.kodeProduk}",
               style: const TextStyle(fontSize: 20.0),
             ),
             Text(
-              "Nama: ${widget.produk!.namaProduk}",
+              "Nama : ${widget.produk!.namaProduk}",
               style: const TextStyle(fontSize: 18.0),
             ),
             Text(
-              "Harga: Rp. ${widget.produk!.hargaProduk.toString()}",
+              "Harga : Rp. ${widget.produk!.hargaProduk.toString()}",
               style: const TextStyle(fontSize: 18.0),
             ),
             _tombolHapusEdit(),
@@ -63,7 +63,17 @@ class ProdukDetailState extends State<ProdukDetail> {
     AlertDialog alertDialog = AlertDialog(
       content: const Text("Yakin ingin menghapus data ini?"),
       actions: [
-        OutlinedButton(child: const Text("Ya"), onPressed: () {}),
+        OutlinedButton(
+          child: const Text("Ya"),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProdukForm(produk: widget.produk!),
+              ),
+            );
+          },
+        ),
         OutlinedButton(
           child: const Text("Batal"),
           onPressed: () => Navigator.pop(context),
