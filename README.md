@@ -186,4 +186,4 @@ Aplikasi ini menerapkan standar arsitektur **MVVM (Model-View-ViewModel)** secar
 
 ## Link Video Penjelasan Kode
 
-- **Link Video:** *Link Menyusul Yahh*
+- **Link Video:** *[Video Penjelasan](https://youtu.be/wwzKEtg-UOg)*
